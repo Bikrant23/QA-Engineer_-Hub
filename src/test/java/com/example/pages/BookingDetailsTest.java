@@ -35,7 +35,15 @@ class BookingDetailsTest {
 
     @BeforeEach
     void setUp() {
-        driver = new ChromeDriver(new ChromeOptions());
+//        driver = new ChromeDriver(new ChromeOptions());
+        ChromeOptions options = new ChromeOptions();
+
+        if ("true".equalsIgnoreCase(System.getenv("CI"))) {
+            options.addArguments("--headless=new");
+            options.addArguments("--window-size=1920,1080");
+        }
+
+        driver = new ChromeDriver(options);
 
         LoginPage loginPage = new LoginPage(driver)
                 .open()
