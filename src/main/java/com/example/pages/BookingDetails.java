@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.List;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebElement;
@@ -48,6 +49,11 @@ public class BookingDetails extends BasePage {
     public void waitForMyBookingsToLoad() {
         new WebDriverWait(driver, Duration.ofSeconds(15))
                 .until(ExpectedConditions.visibilityOfElementLocated(BOOKINGS_HEADING));
+    }
+
+    public void waitForAtLeastOneBooking() {
+        new WebDriverWait(driver, Duration.ofSeconds(15))
+                .until(ignored -> !getAllBookingReferences().isEmpty());
     }
 
     public List<String> getAllBookingReferences() {
@@ -126,7 +132,12 @@ public class BookingDetails extends BasePage {
 
     public BookingDetails openDetailsForBooking(String bookingReference) {
         WebElement card = findBookingCard(bookingReference);
-        card.findElement(By.xpath(".//button[normalize-space()='View Details']")).click();
+        WebElement detailsButton = card.findElement(By.xpath(".//button[normalize-space()='View Details']"));
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block: 'center'});", detailsButton);
+        new WebDriverWait(driver, Duration.ofSeconds(10))
+                .until(ExpectedConditions.elementToBeClickable(detailsButton))
+                .click();
         waitForVisible(DETAIL_BOOKING_REFERENCE);
         return this;
     }

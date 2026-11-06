@@ -23,8 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BookingDetailsTest {
-    private static final String EVENT_URL = BasePage.BASE_URL + "events/33402";
-    private static final String EVENT_TITLE = "QA Automation Summit 20261105135824";
     private static final String CUSTOMER_NAME = "QA Ticket Buyer";
     private static final String CUSTOMER_EMAIL = "qa.ticket.buyer@example.com";
     private static final String CUSTOMER_PHONE = "+91 98765 43210";
@@ -32,6 +30,7 @@ class BookingDetailsTest {
     private static final String CONFIRMED = "confirmed";
 
     private WebDriver driver;
+    private TestEventFactory.TestEvent testEvent;
 
     @BeforeEach
     void setUp() {
@@ -51,6 +50,7 @@ class BookingDetailsTest {
                 .enterPassword(BasePage.PASSWORD);
         loginPage.submit();
         assertTrue(loginPage.isLoggedIn(), "Login should reach the dashboard");
+        testEvent = TestEventFactory.create(driver, "QA Booking Event ");
     }
 
     @AfterEach
@@ -64,9 +64,9 @@ class BookingDetailsTest {
     void verifiesBookingDetailsAndCancellationFlow() throws IOException {
         BookingDetails bookingDetails = new BookingDetails(driver).openMyBookings();
         Set<String> previousReferences =
-                new HashSet<>(bookingDetails.getBookingReferencesForEvent(EVENT_TITLE));
+                new HashSet<>(bookingDetails.getBookingReferencesForEvent(testEvent.title()));
 
-        driver.get(EVENT_URL);
+        driver.get(testEvent.url());
         BookTickets bookTickets = new BookTickets(driver);
         int seatsBeforeBooking = bookTickets.getAvailableSeats();
         bookTickets.selectTicketCount(TICKET_COUNT)
@@ -78,7 +78,7 @@ class BookingDetailsTest {
         driver.get(BasePage.BASE_URL + "bookings");
         bookingDetails.waitForMyBookingsToLoad();
         String bookingReference = new WebDriverWait(driver, Duration.ofSeconds(15))
-                .until(ignored -> bookingDetails.getBookingReferencesForEvent(EVENT_TITLE).stream()
+                .until(ignored -> bookingDetails.getBookingReferencesForEvent(testEvent.title()).stream()
                         .filter(reference -> !previousReferences.contains(reference))
                         .findFirst()
                         .orElse(null));
@@ -96,9 +96,9 @@ class BookingDetailsTest {
         assertEquals(bookingId, bookingDetails.getBookingIdInDetails(),
                 "Booking ID should match My Bookings");
 
-        assertEquals(EVENT_TITLE, bookingDetails.getDetailValue("Event Details", "Event"));
+        assertEquals(testEvent.title(), bookingDetails.getDetailValue("Event Details", "Event"));
         assertEquals("Conference", bookingDetails.getDetailValue("Event Details", "Category"));
-        assertEquals("Saturday, 5 December 2026",
+        assertEquals(testEvent.date(),
                 bookingDetails.getDetailValue("Event Details", "Date"));
         assertEquals("Bangalore International Exhibition Centre, Bengaluru",
                 bookingDetails.getDetailValue("Event Details", "Venue"));
@@ -110,8 +110,9 @@ class BookingDetailsTest {
 
         assertEquals(String.valueOf(TICKET_COUNT),
                 bookingDetails.getDetailValue("Payment Summary", "Tickets"));
-        assertEquals("$250", bookingDetails.getDetailValue("Payment Summary", "Price per ticket"));
-        assertEquals("$1,250", bookingDetails.getDetailValue("Payment Summary", "Total Paid"));
+        assertEquals(testEvent.pricePerTicket(),
+                bookingDetails.getDetailValue("Payment Summary", "Price per ticket"));
+        assertEquals(testEvent.totalPrice(), bookingDetails.getDetailValue("Payment Summary", "Total Paid"));
         saveScreenshot("booking-details-02-verified-detail-sections.png");
 
         bookingDetails.openCancelBookingDialog();
@@ -123,7 +124,7 @@ class BookingDetailsTest {
                 "Dismissing the dialog should leave the booking confirmed");
         saveScreenshot("booking-details-04-cancel-dismissed-still-confirmed.png");
 
-        driver.get(EVENT_URL);
+        driver.get(testEvent.url());
         int seatsBeforeCancellation = bookTickets.getAvailableSeats();
         assertEquals(seatsBeforeBooking - TICKET_COUNT, seatsBeforeCancellation,
                 "Dismissing cancellation must not restore seats");
@@ -145,13 +146,22 @@ class BookingDetailsTest {
                 "Cancelled booking details should no longer be accessible");
         saveScreenshot("booking-details-07-after-cancellation-details.png");
 
-        driver.get(EVENT_URL);
+        driver.get(testEvent.url());
         int seatsAfterCancellation = bookTickets.getAvailableSeats();
         assertEquals(seatsBeforeBooking, seatsAfterCancellation,
                 "Cancelling the booking should restore all five seats");
         saveScreenshot("booking-details-08-seats-restored.png");
 
+        driver.get(testEvent.url());
+        bookTickets.selectTicketCount(1)
+                .enterFullName(CUSTOMER_NAME)
+                .enterEmail(CUSTOMER_EMAIL)
+                .enterPhoneNumber(CUSTOMER_PHONE)
+                .confirmBooking();
+        bookTickets.waitForBookingAttemptCompletion();
+
         bookingDetails.openMyBookings();
+        bookingDetails.waitForAtLeastOneBooking();
         Set<String> bookingsBeforeClear = new HashSet<>(bookingDetails.getAllBookingReferences());
         assertFalse(bookingsBeforeClear.isEmpty(), "At least one booking should exist before clearing");
         bookingDetails.clickClearAllBookings();

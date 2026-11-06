@@ -91,6 +91,11 @@ class CreateEventTest {
         assertTrue(eventListed,
                 "The newly created event should appear in the events table");
 
+        ManageEventsByAdmin manageEvents = new ManageEventsByAdmin(driver).openDashboard();
+        manageEvents.waitForPublicEventListToLoad();
+        assertTrue(manageEvents.isEventListedOnPublicPage(title),
+                "The newly created event should appear on the Dashboard");
+
         Path screenshot = Path.of("target", "screenshots", "create-event.png");
         Files.createDirectories(screenshot.getParent());
         Files.copy(((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE).toPath(),

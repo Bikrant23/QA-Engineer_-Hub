@@ -21,6 +21,8 @@ public class BookTickets extends BasePage {
     private static final By CONFIRM_BOOKING_BUTTON = By.id("confirm-booking");
     private static final By AVAILABLE_SEATS =
             By.xpath("//span[contains(normalize-space(), ' / ') and contains(normalize-space(), ' seats')]");
+    private static final By BOOKING_CONFIRMED =
+            By.xpath("//main//h3[contains(normalize-space(), 'Booking Confirmed!')]");
 
     public BookTickets(WebDriver driver) {
         super(driver);
@@ -92,7 +94,8 @@ public class BookTickets extends BasePage {
     public void waitForBookingAttemptCompletion() {
         new WebDriverWait(driver, Duration.ofSeconds(15))
                 .until(ExpectedConditions.or(
-                        ExpectedConditions.urlMatches(".*/bookings/\\d+$"),
-                        ExpectedConditions.elementToBeClickable(CONFIRM_BOOKING_BUTTON)));
+                        ExpectedConditions.visibilityOfElementLocated(BOOKING_CONFIRMED),
+                        ExpectedConditions.visibilityOfElementLocated(EMAIL_ERROR),
+                        ExpectedConditions.visibilityOfElementLocated(PHONE_ERROR)));
     }
 }

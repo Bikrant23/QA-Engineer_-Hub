@@ -9,7 +9,6 @@ import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -21,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BookTicketsTest {
-    private static final String EVENT_URL = BasePage.BASE_URL + "events/33402";
     private static final int BOOKING_TICKET_COUNT = 5;
 
     private WebDriver driver;
+    private TestEventFactory.TestEvent testEvent;
 
     @BeforeEach
     void setUp() {
@@ -45,6 +44,7 @@ class BookTicketsTest {
                 .enterPassword(BasePage.PASSWORD);
         loginPage.submit();
         assertTrue(loginPage.isLoggedIn(), "Login should reach the dashboard");
+        testEvent = TestEventFactory.create(driver, "QA Ticket Event ");
     }
 
     @AfterEach
@@ -56,7 +56,7 @@ class BookTicketsTest {
 
     @Test
     void booksFiveTicketsAndVerifiesSeatCountDecreases() throws IOException {
-        driver.get(EVENT_URL);
+        driver.get(testEvent.url());
         BookTickets bookTickets = new BookTickets(driver);
         int seatsBeforeBooking = bookTickets.getAvailableSeats();
 
@@ -69,7 +69,7 @@ class BookTicketsTest {
         bookTickets.confirmBooking();
         bookTickets.waitForBookingAttemptCompletion();
 
-        driver.get(EVENT_URL);
+        driver.get(testEvent.url());
         int seatsAfterBooking = new WebDriverWait(driver, Duration.ofSeconds(15))
                 .until(ignored -> {
                     int currentSeats = bookTickets.getAvailableSeats();
@@ -83,7 +83,7 @@ class BookTicketsTest {
 
     @Test
     void rejectsInvalidEmailAndPhoneWithoutReducingSeats() throws IOException {
-        driver.get(EVENT_URL);
+        driver.get(testEvent.url());
         BookTickets bookTickets = new BookTickets(driver);
         int seatsBeforeInvalidAttempt = bookTickets.getAvailableSeats();
         bookTickets.selectTicketCount(BOOKING_TICKET_COUNT)
@@ -96,7 +96,7 @@ class BookTicketsTest {
         assertEquals("Enter a valid 10-digit phone", bookTickets.getPhoneValidationMessage());
         saveScreenshot("book-tickets-invalid-details.png");
 
-        driver.get(EVENT_URL);
+        driver.get(testEvent.url());
         assertEquals(seatsBeforeInvalidAttempt, bookTickets.getAvailableSeats(),
                 "Rejected invalid booking should not reduce available seats");
     }

@@ -116,6 +116,11 @@ public class ManageEventsByAdmin extends BasePage {
         return !driver.findElements(eventCard).isEmpty();
     }
 
+    public String getPublicEventUrl(String title) {
+        By eventLink = By.xpath("//main//article//a[normalize-space()='" + title + "']");
+        return waitForVisible(eventLink).getDomProperty("href");
+    }
+
     private WebElement findEventRow(String title) {
         for (WebElement row : driver.findElements(EVENT_ROWS)) {
             if (row.findElement(By.cssSelector("td:first-child")).getText().equals(title)) {

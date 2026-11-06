@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -19,11 +21,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ManageEventsByAdminTest {
-    private static final List<String> CREATED_EVENTS = List.of(
-            "QA Automation Summit 20261105135824",
-            "QA Automation Summit Manual 20261105135500");
+    private static final DateTimeFormatter UNIQUE_TITLE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final DateTimeFormatter EVENT_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
     private WebDriver driver;
+    private List<String> createdEvents;
 
     @BeforeEach
     void setUp() {
@@ -55,19 +59,20 @@ class ManageEventsByAdminTest {
     @Test
     void cancelsAndConfirmsDeletionForBothCreatedEvents() throws IOException {
         ManageEventsByAdmin manageEvents = new ManageEventsByAdmin(driver);
+        createdEvents = createEvents(manageEvents);
         manageEvents.openDashboard();
-        assertEventsVisibleOnDashboard(manageEvents, CREATED_EVENTS);
+        assertEventsVisibleOnDashboard(manageEvents, createdEvents);
         saveScreenshot("manage-events-01-dashboard-before-deletion.png");
         manageEvents.openEventsPage();
-        assertEventsVisibleOnPublicPage(manageEvents, CREATED_EVENTS);
+        assertEventsVisibleOnPublicPage(manageEvents, createdEvents);
 
         manageEvents.openDashboard();
         manageEvents.openFromDashboard();
         assertEventsVisibleInAdmin(manageEvents);
         saveScreenshot("manage-events-02-admin-events-before-deletion.png");
 
-        for (int index = 0; index < CREATED_EVENTS.size(); index++) {
-            String title = CREATED_EVENTS.get(index);
+        for (int index = 0; index < createdEvents.size(); index++) {
+            String title = createdEvents.get(index);
             String suffix = index == 0 ? "first" : "second";
 
             manageEvents.clickDeleteForEvent(title);
@@ -80,7 +85,7 @@ class ManageEventsByAdminTest {
                     "Cancel should retain " + title + " in Manage Events");
             saveScreenshot("manage-events-04-after-cancel-" + suffix + ".png");
             assertEventsVisibleOnPublicPages(manageEvents,
-                    CREATED_EVENTS.subList(index, CREATED_EVENTS.size()));
+                    createdEvents.subList(index, createdEvents.size()));
 
             manageEvents.clickDeleteForEvent(title);
             assertTrue(manageEvents.isDeleteDialogDisplayed(),
@@ -107,7 +112,7 @@ class ManageEventsByAdminTest {
     }
 
     private void assertEventsVisibleInAdmin(ManageEventsByAdmin manageEvents) {
-        for (String title : CREATED_EVENTS) {
+        for (String title : createdEvents) {
             manageEvents.waitForEventInAdminToAppear(title);
             assertTrue(manageEvents.isEventListedInAdmin(title),
                     "Created event should be present in Manage Events: " + title);
@@ -123,6 +128,36 @@ class ManageEventsByAdminTest {
         for (String title : expectedEvents) {
             manageEvents.waitForEventInAdminToAppear(title);
         }
+    }
+
+    private List<String> createEvents(ManageEventsByAdmin manageEvents) {
+        LocalDateTime now = LocalDateTime.now();
+        List<String> titles = List.of(
+                "QA Admin Event " + now.format(UNIQUE_TITLE_FORMAT) + "-1",
+                "QA Admin Event " + now.format(UNIQUE_TITLE_FORMAT) + "-2");
+
+        for (int index = 0; index < titles.size(); index++) {
+            String dateTime = now.plusDays(index + 1L)
+                    .withHour(10)
+                    .withMinute(0)
+                    .withSecond(0)
+                    .withNano(0)
+                    .format(EVENT_DATE_FORMAT);
+            new CreateEventPage(driver)
+                    .openFromEvents()
+                    .enterTitle(titles.get(index))
+                    .enterDescription("QA automation event lifecycle test.")
+                    .selectCategory("Conference")
+                    .enterCity("Bangalore")
+                    .enterVenue("Bangalore International Exhibition Centre, Bengaluru")
+                    .enterDateTime(dateTime)
+                    .enterPrice("250")
+                    .enterTotalSeats("500")
+                    .submit();
+            manageEvents.openManageEvents();
+            manageEvents.waitForEventInAdminToAppear(titles.get(index));
+        }
+        return titles;
     }
 
     private void assertEventsVisibleOnDashboard(
