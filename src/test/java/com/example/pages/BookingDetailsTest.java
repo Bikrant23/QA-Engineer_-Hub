@@ -34,7 +34,7 @@ class BookingDetailsTest {
 
     @BeforeEach
     void setUp() {
-//        driver = new ChromeDriver(new ChromeOptions());
+//      driver = new ChromeDriver(new ChromeOptions());
         ChromeOptions options = new ChromeOptions();
 
         if ("true".equalsIgnoreCase(System.getenv("CI"))) {

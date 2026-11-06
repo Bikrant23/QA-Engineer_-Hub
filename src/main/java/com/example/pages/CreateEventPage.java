@@ -1,9 +1,13 @@
 package com.example.pages;
 
+import java.time.Duration;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class CreateEventPage extends BasePage {
     private static final By ADD_NEW_EVENT_BUTTON =
@@ -17,6 +21,8 @@ public class CreateEventPage extends BasePage {
     private static final By PRICE = By.id("price-($)");
     private static final By TOTAL_SEATS = By.id("total-seats");
     private static final By SUBMIT_BUTTON = By.id("add-event-btn");
+    private static final By EVENT_CREATED_SUCCESS_MESSAGE =
+            By.xpath("//*[normalize-space()='Event created!']");
 
     public CreateEventPage(WebDriver driver) {
         super(driver);
@@ -77,6 +83,8 @@ public class CreateEventPage extends BasePage {
 
     public void submit() {
         click(SUBMIT_BUTTON);
+        new WebDriverWait(driver, Duration.ofSeconds(15))
+                .until(ExpectedConditions.visibilityOfElementLocated(EVENT_CREATED_SUCCESS_MESSAGE));
     }
 
     public boolean isEventListed(String title) {
